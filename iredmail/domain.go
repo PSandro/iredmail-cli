@@ -1,6 +1,7 @@
 package iredmail
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 )
@@ -55,9 +56,10 @@ func (s *Server) domainQuery(whereQuery string, args ...interface{}) (Domains, e
 	defer rows.Close()
 
 	for rows.Next() {
-		var domain, description, settings string
+		var domain string
+		var descriptionString, settingsString sql.NullString
 
-		err := rows.Scan(&domain, &description, &settings)
+		err := rows.Scan(&domain, &descriptionString, &settingsString)
 		if err != nil {
 			return domains, err
 		}
@@ -70,6 +72,15 @@ func (s *Server) domainQuery(whereQuery string, args ...interface{}) (Domains, e
 		catchalls, err := s.forwardingQuery(forwardingQueryCatchallByDomain, domain)
 		if err != nil {
 			return domains, err
+		}
+		var description, settings string
+
+		if descriptionString.Valid {
+			description = descriptionString.String
+		}
+
+		if settingsString.Valid {
+			settings = settingsString.String
 		}
 
 		domains = append(domains, Domain{
